@@ -3,25 +3,26 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs =
+    { nixpkgs, ... }:
+    let
+      inherit (nixpkgs) lib;
+      forAllSystems = lib.genAttrs lib.systems.flakeExposed;
+    in
     {
-      self,
-      nixpkgs,
-      flake-utils,
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in
-      {
-        # Expose nixpkgs for child flakes to ensure consistent versioning
-        nixpkgsFor = pkgs;
+      # Expose nixpkgs for child flakes to ensure consistent versioning
+      # Access as: quarto-base.nixpkgsFor.${system}
+      nixpkgsFor = forAllSystems (system: nixpkgs.legacyPackages.${system});
 
-        lib = {
+      # Access as: quarto-base.lib.${system}.mkQuartoEnv
+      lib = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
           # Function that can be used by other flakes to override Quarto's
           # extraPythonPackages
           mkQuartoEnv =
@@ -29,7 +30,7 @@
               extraPythonPackages ? (ps: [ ]),
             }:
             pkgs.quarto.override {
-              extraPythonPackages = ps: extraPythonPackages ps;
+              inherit extraPythonPackages;
             };
 
           # Function that can be used by other flakes to override Quarto's python
@@ -42,9 +43,9 @@
             }:
             pkgs.quarto.override {
               python3 = python;
-              extraPythonPackages = extraPythonPackages;
+              inherit extraPythonPackages;
             };
-        };
-      }
-    );
+        }
+      );
+    };
 }
