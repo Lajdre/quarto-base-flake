@@ -47,9 +47,20 @@ a Python environment with NumPy:
 }
 ```
 
-To supply a custom Python interpreter, use `mkQuartoCustomPython` instead. Its
-`python` argument defaults to `pkgs.python3`. Both helpers accept an
-`extraPythonPackages` function, which defaults to `ps: [ ]`.
+To select a specific Python version, replace the `extendedQuarto` definition in the
+`let` block with something like this:
+
+```nix
+python = pkgs.python314;
+
+extendedQuarto = quarto-base.lib.${system}.mkQuartoCustomPython {
+  inherit python;
+  extraPythonPackages = ps: with ps; [ numpy ];
+};
+```
+
+The `python` argument defaults to `pkgs.python3`. Both helpers accept an
+`extraPythonPackages` function.
 
 For the blog's top-level shell, use `packages = [ pkgs.quarto ];` if you only need
 Quarto for `quarto preview` and `quarto publish`.
